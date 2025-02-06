@@ -8,6 +8,7 @@ use std::marker::Copy;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum State {
@@ -44,6 +45,7 @@ pub struct Node {
     test_node: Option<NodeIndex>,
     graph: Arc<RwLock<Graph<i32, i32, Undirected>>>,
     pub stop: Arc<RwLock<AtomicBool>>,
+    pub message_count: Arc<AtomicUsize>,
 }
 
 impl Node {
@@ -51,6 +53,7 @@ impl Node {
         graph: Arc<RwLock<Graph<i32, i32, Undirected>>>,
         index: NodeIndex,
         stop: Arc<RwLock<AtomicBool>>,
+        message_count: Arc<AtomicUsize>,
     ) -> Self {
         Node {
             index,
@@ -65,13 +68,14 @@ impl Node {
             test_node: None,
             graph,
             stop,
+            message_count,
         }
     }
     pub fn initialize(&mut self, sender_mapping: &HashMap<NodeIndex, Sender<Message>>) {
         //println!("Initializing node {:?}..", self.index);
-        let graph = self.graph.read().expect("Error while reading 'graph':");
+        let graph: std::sync::RwLockReadGuard<'_, Graph<i32, i32, Undirected>> = self.graph.read().expect("Error while reading 'graph':");
         let edges = graph.edges(self.index);
-        let edge_min = edges
+        let edge_min: petgraph::graph::EdgeReference<'_, i32> = edges
             .min_by_key(|edge_ref| edge_ref.weight())
             .expect("Error while finding least weight edge during initialization:");
         let src = edge_min.source();

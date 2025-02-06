@@ -1,40 +1,31 @@
 use petgraph::graph::{Graph, NodeIndex};
-use petgraph::visit::EdgeRef;
 use petgraph::Undirected;
-use std::clone::Clone;
 use std::collections::HashMap;
-use std::str::FromStr;
-// use std::sync::atomic::AtomicBool;
-use std::sync::atomic::{AtomicBool, AtomicUsize};
-use std::sync::mpsc::TryRecvError;
-use std::sync::mpsc::{self, Receiver, Sender};
-use std::sync::{Arc, RwLock};
-use std::thread;
-use std::{env, process};
-use std::time::Instant;
 use std::fs::File;
 use std::io::Write;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
+use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
+use std::sync::{Arc, RwLock};
+use std::thread;
+use std::time::Instant;
+use std::{env, process};
 
 mod node;
 use node::*;
 
-fn read_graph(input_file: &str) ->(Graph<i32, i32, Undirected>, usize, usize){
+fn read_graph(input_file: &str) -> (Graph<i32, i32, Undirected>, usize, usize) {
     let input_buffer = std::fs::read_to_string(input_file).expect("Unable to open input file");
     let input_buffer = input_buffer.as_str();
     let mut lines = input_buffer.lines();
     let lines_ref = &mut lines;
     let nodes = lines_ref.next().unwrap();
     let num_nodes = u32::from_str(nodes).unwrap() as usize;
-
-    let _nodes = u32::from_str(nodes).unwrap();
-    //println!("No. of Nodes: {:?}", nodes);
+    
     let mut graph: Graph<i32, i32, Undirected> = Graph::default();
     let mut edges_vec = vec![];
     let mut num_edges = 0;
-    let mut _edges = 0;
     for line in lines {
         num_edges += 1;
-        _edges += 1;
         let tuple_vec: Vec<&str> = line
             .trim_matches(|p| p == '(' || p == ')')
             .split(',')
@@ -46,67 +37,9 @@ fn read_graph(input_file: &str) ->(Graph<i32, i32, Undirected>, usize, usize){
         let tuple = (tuple_vec[0] as u32, tuple_vec[1] as u32, tuple_vec[2]);
         edges_vec.push(tuple);
     }
-    //println!("No. of Edges: {}", edges);
     graph.extend_with_edges(&edges_vec[..]);
-    //println!("{:?}", graph);
-    // graph
     (graph, num_nodes, num_edges)
 }
-
-fn get_mst_from_data(
-    data: HashMap<NodeIndex, HashMap<NodeIndex, Status>>,
-    graph: Arc<RwLock<Graph<i32, i32, Undirected>>>,
-) -> Vec<(NodeIndex, NodeIndex, i32)> {
-    let mut pairs = vec![];
-    for (node_index, status_map) in data {
-        for (nbr_index, status) in status_map {
-            if status == Status::Branch {
-                let pair = if node_index < nbr_index {
-                    (node_index, nbr_index)
-                } else {
-                    (nbr_index, node_index)
-                };
-                if !pairs.contains(&pair) {
-                    pairs.push(pair);
-                }
-            }
-        }
-    }
-    //println!("Pairs: {:?}", pairs);
-
-    let mut weight_map = HashMap::new();
-    let graph = graph.read().unwrap();
-    for edge in graph.edge_references() {
-        let source = edge.source();
-        let target = edge.target();
-        let weight = *edge.weight();
-        weight_map.insert((source, target), weight);
-    }
-
-    let mut triplets = vec![];
-    for pair in pairs {
-        let (one, two) = pair;
-        let mut new_pair = (one, two);
-        let weight = if weight_map.get(&new_pair) == None {
-            new_pair = (two, one);
-            weight_map
-                .get(&new_pair)
-                .expect("Error while getting a pair weight from weight_map:")
-        } else {
-            weight_map
-                .get(&new_pair)
-                .expect("Error while getting a pair weight from weight_map:")
-        };
-        let (one, two) = new_pair;
-        let triplet = (one, two, *weight);
-        triplets.push(triplet);
-    }
-    //println!("Triplets: {:?}", triplets);
-    triplets.sort_unstable_by(|(_, _, weight1), (_, _, weight2)| weight1.cmp(weight2));
-    //println!("Sorted Triplets: {:?}", triplets);
-    triplets
-}
-
 
 fn run_experiment(input_file: &str) -> (usize, usize, f64, usize) {
     let (graph, num_nodes, num_edges) = read_graph(input_file);

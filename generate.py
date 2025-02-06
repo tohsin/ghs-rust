@@ -1,0 +1,165 @@
+"""Generate test cases for the MST Problem"""
+import sys
+import random
+import os
+
+def write_to_file(num_nodes, edges, graph_type):
+    """Write the edges on the input file
+    
+    Arguments:
+        num_nodes {Integer} -- Number of nodes in the graph
+        edges {List} -- List of edges with unique edges
+        graph_type {String} -- Mention in the file name
+    """
+    # Write into input file
+    dir_name = 'files'
+    os.makedirs(dir_name, exist_ok=True)
+
+    filename = os.path.join(dir_name, f'inp-{num_nodes}-{graph_type}.txt')
+
+    #filename = 'files/inp-' + str(num_nodes) + '-' + graph_type + '.txt'
+    with open(filename, 'w') as file:
+        file.write(str(num_nodes) + '\n')
+        for edge in edges:
+            file.write(deserilaise_edge(edge) + '\n')
+
+def deserilaise_edge(edge):
+    return f"({edge[0]}, {edge[1]}, {edge[2]})"
+
+def generate_random(num_nodes):
+    """Generate a random connected graph with unique weight edges
+    
+    Arguments:
+        num_nodes {Integer}
+    """
+    nodes = list(range(num_nodes))  # List of all nodes
+    added = [0]  # List of nodes added in the connected graph
+
+    edges = []  # Store edges for the connected graph
+    weights = list(range(5, (num_nodes * num_nodes) // 2))
+    random.shuffle(weights)
+    for node in nodes[1:]:
+        # Decide number of edges
+        num_edges = random.randint(1, len(added))
+        temp = added.copy()
+
+        for _ in range(num_edges):
+            end = random.choice(temp)
+            weight = random.choice(weights)
+
+            edges.append((node, end, weight))
+            temp.remove(end)
+            weights.remove(weight)
+
+        # Add the current node in the graph too
+        added.append(node)
+
+    write_to_file(num_nodes, edges, 'random')
+
+
+def generate_connected(num_nodes):
+    """Generate a fully connected random graph with unique edge weights
+    
+    Arguments:
+        num_nodes {Integer}
+    """
+    edges = []
+    weights = list(range(5, (num_nodes * num_nodes) // 2))
+    random.shuffle(weights)
+    for _in in range(num_nodes):
+        for _jn in range(_in + 1, num_nodes):
+            weight = random.choice(weights)
+            edges.append((_in, _jn, weight))
+            weights.remove(weight)
+
+    write_to_file(num_nodes, edges, 'connected')
+
+
+def generate_tree(num_nodes):
+    """Generate a tree with unique branch weights
+    
+    Arguments:
+        num_nodes {Integer}
+    """
+    queue = [0]
+    max_branches = 4
+    count = 1
+    edges = []
+    weights = list(range(5, (num_nodes * num_nodes) // 2))
+    random.shuffle(weights)
+    print(len(weights))
+    flag = False
+    while not flag:
+        node = queue.pop()
+        neighbours = random.randint(1, max_branches)
+        for neighbour in range(neighbours):
+            weight = random.choice(weights)
+            queue.append(count)
+            edges.append((node, count, weight))
+
+            weights.remove(weight)
+            count += 1
+            if count == num_nodes:
+                flag = True
+                break
+
+        if flag:
+            break
+
+    write_to_file(num_nodes, edges, 'tree')
+
+
+def generate_linear(num_nodes):
+    """Generate a linear tree with unique edge weights
+    
+    Arguments:
+        num_nodes {Integer}
+    """
+    edges = []
+    weights = list(range(5, (num_nodes * num_nodes) // 2))
+    nodes = list(range(num_nodes))
+    random.shuffle(weights)
+    random.shuffle(nodes)
+    for _in in range(num_nodes - 1):
+        weight = random.choice(weights)
+        edges.append((nodes[_in], nodes[_in + 1], weight))
+        weights.remove(weight)
+
+    write_to_file(num_nodes, edges, 'linear')
+
+def generate_ring(num_nodes):
+    """Generate a ring graph with unique edge weights
+    
+    Arguments:
+        num_nodes {Integer}
+    """
+    edges = []
+    weights = list(range(5, (num_nodes * num_nodes) // 2))
+    nodes = list(range(num_nodes))
+    random.shuffle(weights)
+    random.shuffle(nodes)
+    for _in in range(num_nodes - 1):
+        weight = random.choice(weights)
+        edges.append((nodes[_in], nodes[_in + 1], weight))
+        weights.remove(weight)
+
+    # Add the final edge
+    weight = random.choice(weights)
+    edges.append((nodes[-1], nodes[0], weight))
+
+    write_to_file(num_nodes, edges, 'ring')
+
+import numpy as np
+
+def generate_logarithmic_node_counts(start, end, num_tests):
+    node_counts = np.logspace(np.log10(start), np.log10(end), num=num_tests, dtype=int)
+    return list(node_counts)
+
+num_tests = 40
+logarithmic_node_counts = generate_logarithmic_node_counts(10, 2000, num_tests)
+
+
+
+if __name__ == '__main__':
+    for num_nodes in logarithmic_node_counts:
+        generate_random(num_nodes)
